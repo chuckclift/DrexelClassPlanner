@@ -36,18 +36,10 @@ def class_time_overlap(start1, end1, start2, end2):
     same_ends = end1 == end2
     return overlap1 or overlap2 or same_starts or same_ends
 
-def class_match(name, class_obj):
-    school, course_num = name.split()
-    class_match = class_obj.subject.lower() == school.lower()
-    number_match = class_obj.course_num.lower() == course_num.lower()
-    return class_match and number_match
     
 
-def relevant_class(class_info, relevant_classes):
-    return any(class_match(a, class_info) for a in relevant_classes )
-
 def get_class_type(class_info):
-    return " ".join([class_info.subject, class_info.course_num, class_info.instr_type])
+    return " ".join([class_info.name , class_info.instr_type])
 
 def time_overlap(class1, class2):
     timeStringOne = class1.day_time
@@ -56,9 +48,9 @@ def time_overlap(class1, class2):
     daySetOne = set(timeStringOne.split()[0])
     daySetTwo = set(timeStringTwo.split()[0])
 
-    no_overlap = not daySetOne.intersection(daySetTwo)
+    no_day_overlap = not daySetOne.intersection(daySetTwo)
        
-    if no_overlap:
+    if no_day_overlap:
         return False
 
     if class1.instr_method.lower() == "online" or class2.instr_method.lower() == "online":
@@ -74,16 +66,12 @@ def time_overlap(class1, class2):
     
     return class_time_overlap(start1, end1, start2, end2)
 
+def classes_compatible(o,c):
+    same_class = c.crn == o.crn
+    return not time_overlap(c,o) or same_class
+
 def valid_combo(classes):
-    for c in classes:
-        current_crn = c.crn
-
-        for o in classes:  # checking each course for conflicts
-            same_class = c.crn == o.crn
-            if time_overlap(c, o) and not same_class:
-                return False 
-
-    return True
+    return all(classes_compatible(a,b) for a in classes for b in classes)
 
 def get_valid_schedules(target_classes, class_schedule):
     # example input:
@@ -93,7 +81,7 @@ def get_valid_schedules(target_classes, class_schedule):
     #                  ,["CS", "161", "Lab", "Face To Face", "61", "42233", "Computer Programming II", "R 01:00 pm - 03:50 pm", "STAFF"]] 
 
     # break class schedule to relevant classes
-    relevant_classes = [a for a in class_schedule if relevant_class(a, target_classes)]
+    relevant_classes = [a for a in class_schedule if a.name in target_classes ] 
     print("relevant_classes: ", len(relevant_classes))
 
     # break relevant classes into labs, lectures, and recitations
@@ -113,56 +101,62 @@ def get_valid_schedules(target_classes, class_schedule):
         if valid_combo(a):
             yield a
 
+def read_data(datafile):
+    course = namedtuple('course', ['name', 'instr_type', 'instr_method', 'crn', 'day_time'])
+
+    with open(datafile) as csvfile:
+        reader = csv.reader(csvfile, delimiter=",")
+        data = [a for a in reader]
+
+    for row in data:
+        name = (row[0] + " " + row[1]).lower()
+        instr_type = row[2].lower()
+        instr_method = row[3].lower()
+        crn = int(row[5])
+        day_time = row[7]
+        for a in instr_type.split("&"):
+            yield course(name, a.strip(), instr_method, crn, day_time) 
+
+
 
 def generate_schedules(data_file, target_classes):
-    course = namedtuple('course', ['subject', 'course_num', 'instr_type', 'instr_method', 
-                                   'sec', 'crn', 'title', 'day_time', 'instructor'])
+    all_courses = read_data(data_file)
 
-    all_courses = []
-    with open(data_file) as csvfile:
-        reader = csv.reader(csvfile, delimiter=",")
-        for row in reader:
-            if "&" in row[2]:
-                all_courses.append(course(row[0], row[1], "Lecture", row[3], row[4],
-                                          row[5], row[6], row[7], row[8])) 
-                all_courses.append(course(row[0], row[1], "Lab", row[3], row[4],
-                                          row[5], row[6], row[7], row[8])) 
-            else:
-                all_courses.append(course(row[0], row[1], row[2], row[3], row[4],
-                                          row[5], row[6], row[7], row[8])) 
-
-#    for i in islice(get_valid_schedules(target_classes, all_courses), 1):
     for i in get_valid_schedules(target_classes, all_courses):
         yield i
 
+def print_plan(title, classes):
+    print("#" * 40)
+    print(title, " ".join([a.name for a in classes]))
+    print("#" * 40)
+
+    for course in classes:
+        time_string = " ".join(course.day_time.split()[:5])
+        print(",".join((time_string, course.name, str(course.crn) )))
+    print(" ")
 
 def report(data_file, target_classes, title):
-    for i in generate_schedules(data_file, target_classes):
-        print(title, target_classes)
-        for course in i:
-            time_string = " ".join(course.day_time.split()[:5])
-            print(",".join((time_string, course.subject, course.course_num
-                                      , course.instr_method, course.crn )))
+    [print_plan(title, i) for  i in generate_schedules(data_file, target_classes)]
 
 if __name__ == "__main__":
-    target_classes = ["CS 171", "PSY 330", "COM 230", "PHIL 105", "STAT 201", "MATH 123"] #spring3
+    target_classes = ["cs 171", "psy 330", "com 230", "phil 105", "stat 201", "math 123"] #spring3
     report("fullSpring.csv", target_classes, "spring 3rd year")
 
-#    target_classes = ["CS 172", "COM 310", "STAT 202", "INFO 330", "ECON 201"] # summer3
+#    target_classes = ["cs 172", "com 310", "stat 202", "info 330", "econ 201"] # summer3
 #    report("fullSummer.csv", target_classes, "summer 3rd year")
 
-#    target_classes = ["SE 210", "CS 164", "CS 265", "CI 101", "ECON 202", "CS 270"] #fall4
+#    target_classes = ["se 210", "cs 164", "cs 265", "ci 101", "econ 202", "cs 270"] #fall4
 #    report("fullFall.csv", target_classes, "fall 4th year")
 
-#    target_classes = ["INFO 420", "SE 211", "CS 260", "CS 283", "INFO 210"] # winter4
+#    target_classes = ["info 420", "se 211", "cs 260", "cs 283", "info 210"] # winter4
 #    report("fullWinter.csv", target_classes, "winter 4th year")
 
-#    target_classes = ["CI 491", "SE 310", "SE 320",  "CS 350", "CS 380"] # fall5
+#    target_classes = ["ci 491", "se 310", "se 320",  "cs 350", "cs 380"] # fall5
 #    report("fullFall.csv", target_classes, "fall 5th year")
 
-#    target_classes = ["CI 492", "SE 311", "SE 410", "CS 303", "CS 385", "CS 360"] # winter5
+#    target_classes = ["ci 492", "se 311", "se 410", "cs 303", "cs 385", "cs 360"] # winter5
 #    report("fullWinter.csv", target_classes, "winter 5th year")
 
-#    target_classes = ["CI 493", "INFO 310", "CS 281", "INFO 333", "CS 387"] # spring5
+#    target_classes = ["ci 493", "info 310", "cs 281", "info 333", "cs 387"] # spring5
 #    report("fullSpring.csv", target_classes, "spring 5th year")
 
