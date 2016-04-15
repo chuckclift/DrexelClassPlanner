@@ -66,11 +66,8 @@ def time_overlap(class1, class2):
     
     return class_time_overlap(start1, end1, start2, end2)
 
-def classes_compatible(o,c):
-    same_class = c.crn == o.crn
-    return not time_overlap(c,o) or same_class
-
 def valid_combo(classes):
+    classes_compatible = lambda a,b:  a.crn == b.crn or not time_overlap(a,b)
     return all(classes_compatible(a,b) for a in classes for b in classes)
 
 def get_valid_schedules(target_classes, class_schedule):
