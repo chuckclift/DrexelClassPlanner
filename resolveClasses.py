@@ -47,24 +47,18 @@ def time_overlap(class1, class2):
 
     daySetOne = set(timeStringOne.split()[0])
     daySetTwo = set(timeStringTwo.split()[0])
+    day_overlap = daySetOne.intersection(daySetTwo)
 
-    no_day_overlap = not daySetOne.intersection(daySetTwo)
-       
-    if no_day_overlap:
-        return False
-
-    if class1.instr_method.lower() == "online" or class2.instr_method.lower() == "online":
-        return False
+    online_class = class1.instr_method == "online" or class2.instr_method == "online"
     
-    if "tbd" in class1.day_time.lower() or "tbd" in class2.day_time.lower():
-        return True
-
     start1 = get_start_time(timeStringOne)
     end1 = get_end_time(timeStringOne)
     start2 = get_start_time(timeStringTwo)
     end2 = get_end_time(timeStringTwo)
+
+    time_overlap = class_time_overlap(start1, end1, start2, end2)
     
-    return class_time_overlap(start1, end1, start2, end2)
+    return time_overlap and day_overlap and not online_class 
 
 def valid_combo(classes):
     classes_compatible = lambda a,b:  a.crn == b.crn or not time_overlap(a,b)
@@ -110,9 +104,10 @@ def read_data(datafile):
         instr_type = row[2].lower()
         instr_method = row[3].lower()
         crn = int(row[5])
-        day_time = row[7]
-        for a in instr_type.split("&"):
-            yield course(name, a.strip(), instr_method, crn, day_time) 
+        day_time = row[7].lower()
+        if "tbd" not in day_time:
+            for a in instr_type.split("&"):
+                yield course(name, a.strip(), instr_method, crn, day_time) 
 
 
 
