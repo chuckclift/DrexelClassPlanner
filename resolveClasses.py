@@ -8,20 +8,18 @@ from itertools import islice
 def get_start_time(time_string):
     combined_time =  int(time_string.split()[1].replace(":", ""))
 
+    military_time = combined_time
     if time_string.split()[2] == "pm":
         military_time = combined_time + 1200
-    else:
-        military_time = combined_time
     
     return military_time 
     
 def get_end_time(time_string):
     combined_time =  int(time_string.split()[4].replace(":", ""))
 
+    military_time = combined_time
     if time_string.split()[5] == "pm":
         military_time = combined_time + 1200
-    else:
-        military_time = combined_time
     
     return military_time 
 
@@ -38,14 +36,15 @@ def class_time_overlap(start1, end1, start2, end2):
     same_ends = end1 == end2
     return overlap1 or overlap2 or same_starts or same_ends
 
-
+def class_match(name, class_obj):
+    school, course_num = name.split()
+    class_match = class_obj.subject.lower() == school.lower()
+    number_match = class_obj.course_num.lower() == course_num.lower()
+    return class_match and number_match
+    
 
 def relevant_class(class_info, relevant_classes):
-    for r in relevant_classes:
-        school, course_num = r.split()
-
-        if class_info.subject.lower() == school.lower() and class_info.course_num.lower() == course_num:
-            return True
+    return any(class_match(a, class_info) for a in relevant_classes )
 
 def test_combination(course_combination):
     print("everything failed")
