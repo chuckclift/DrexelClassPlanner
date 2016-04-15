@@ -46,11 +46,6 @@ def class_match(name, class_obj):
 def relevant_class(class_info, relevant_classes):
     return any(class_match(a, class_info) for a in relevant_classes )
 
-def test_combination(course_combination):
-    print("everything failed")
-    # for c in course_combination:
-
-
 def get_class_type(class_info):
     return " ".join([class_info.subject, class_info.course_num, class_info.instr_type])
 
@@ -118,6 +113,7 @@ def get_valid_schedules(target_classes, class_schedule):
         if valid_combo(a):
             yield a
 
+
 def generate_schedules(data_file, target_classes):
     course = namedtuple('course', ['subject', 'course_num', 'instr_type', 'instr_method', 
                                    'sec', 'crn', 'title', 'day_time', 'instructor'])
@@ -139,9 +135,6 @@ def generate_schedules(data_file, target_classes):
     for i in get_valid_schedules(target_classes, all_courses):
         yield i
 
-#        print("------new combo------")
-#        for n in i:
-#            print(" ".join(n.day_time.split()[:5]), "      ",  n.subject, n.course_num, n.instr_method, "    ", n.crn)
 
 def report(data_file, target_classes, title):
     for i in generate_schedules(data_file, target_classes):
