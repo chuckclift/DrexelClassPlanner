@@ -78,10 +78,8 @@ def get_valid_schedules(target_classes, class_schedule):
     # break relevant classes into labs, lectures, and recitations
     class_types = {get_class_type(a) for a in relevant_classes}
 
-    classes_by_type = {}
-    for c in class_types:
-        classes_by_type[c] = []
-
+    classes_by_type = {a:[] for a in  class_types}
+    
     for c in relevant_classes:
         class_type = get_class_type(c) # ex: class_type = "CS 120 Lecture" 
         classes_by_type[class_type].append(c)
